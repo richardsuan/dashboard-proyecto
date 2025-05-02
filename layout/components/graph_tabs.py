@@ -2,7 +2,7 @@ from dash import dcc
 
 def render():
     return dcc.Tabs(
-        id='tabs',
+        id='graph-tabs',
         value='volumen',
         className='custom-tabs',
         children=[

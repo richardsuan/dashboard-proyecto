@@ -33,7 +33,7 @@ def get_clients():
         df['Clientes'] = ['Desconocido'] * len(df)  # En caso de error, rellenamos con valores por defecto
     return df.copy()  # Devuelve una copia para evitar modificaciones accidentales
 
-def get_data_columns(client_name, variable):
+def get_data_columns(client_name):
     """
     Obtiene los datos de una variable específica para un cliente desde un endpoint remoto.
     """
@@ -41,8 +41,7 @@ def get_data_columns(client_name, variable):
         # Definimos la URL del endpoint y el payload
         url = "http://localhost:8080/clients/data"
         payload = {
-            "client_name": client_name,
-            "variable": variable
+            "client_name": client_name            
         }
         headers = {"Content-Type": "application/json"}
 
@@ -53,10 +52,12 @@ def get_data_columns(client_name, variable):
         # Parseamos la respuesta JSON
         data = response.json()
 
-        # Extraemos las columnas de los datos obtenidos
+        # Verificamos si los datos son válidos
         if data and isinstance(data, list):
-            return list(data[0].keys())  # Retorna las claves del primer elemento como columnas
+            print(f"Datos obtenidos para {client_name} ")
+            return data  # Retorna los datos completos como lista de diccionarios
         else:
+            print(f"No se encontraron datos para {client_name} ")
             return []  # Retorna una lista vacía si no hay datos
     except requests.RequestException as e:
         print(f"Error al obtener los datos: {e}")
