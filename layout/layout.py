@@ -1,10 +1,13 @@
 from layout.components import filter_section, anomaly_section, graph_tabs
 from services import data_service
-from dash import dcc, html
+from dash import dcc, html, Input, Output, callback
 
 df_columns = data_service.get_data_columns()
 
 app_layout = html.Div([
+    # Almacenamiento del cliente seleccionado
+    dcc.Store(id='selected-client', storage_type='memory'),
+
     # Encabezado 
     html.Div([
         html.Div([
@@ -25,7 +28,7 @@ app_layout = html.Div([
         html.Div(className='right-column', children=[
             # Fila 1 - Gráfico Principal
             html.Div(className='main-graph-section', children=[
-                html.H3('Comportamiento y Predicción - Cliente 078'),
+                html.H3(id='main-title', children='Comportamiento y Predicción - Cliente 0790'),
                 graph_tabs.render(),
                 html.Div(id='main-graph-output', className='main-graph')
             ]),
@@ -59,3 +62,13 @@ app_layout = html.Div([
         ])
     ])
 ])
+
+# Callback para actualizar el título dinámicamente
+@callback(
+    Output('main-title', 'children'),
+    Input('selected-client', 'data')
+)
+def update_title(selected_client):
+    if selected_client:
+        return f'Comportamiento y Predicción - Cliente {selected_client}'
+    return 'Comportamiento y Predicción'
