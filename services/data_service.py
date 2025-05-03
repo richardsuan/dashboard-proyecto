@@ -1,47 +1,42 @@
 import pandas as pd
 import requests
+
 # Datos de ejemplo (simulando una fuente de datos externa)
 data = {
-    'Fecha': pd.date_range(start='2023-04-01', periods=35, freq='D'),
-    'Volumen': [200 + i + (i % 5) * 10 for i in range(35)],
-    'Presion': [30 + (i % 10) for i in range(35)],
-    'Temperatura': [20 + (i % 7) for i in range(35)]
+    'Fecha': [],
+    'Volumen': [],
+    'Presion': [],
+    'Temperatura': [],
+    'Clientes': []
 }
 df = pd.DataFrame(data)
 
-def get_data():
-    # modi
-    """Simula la obtención de datos."""
-    return df.copy()  # Devuelve una copia para evitar modificaciones accidentales
 
 def get_clients():
     """Obtiene los datos de clientes desde un endpoint remoto."""
     try:
+        # Realizamos la solicitud GET al endpoint
         response = requests.get("http://localhost:8080/clients")
         response.raise_for_status()  # Lanza una excepción si la respuesta tiene un error HTTP
-        clients = response.json()  # Parseamos la respuesta JSON
-        
-        # Ajustamos la longitud de la lista de clientes para que coincida con el DataFrame
-        if len(clients) < len(df):
-            clients.extend(['Desconocido'] * (len(df) - len(clients)))  # Rellenamos con 'Desconocido'
-        else:
-            clients = clients[:len(df)]  # Cortamos la lista si es más larga que el DataFrame
-        
-        df['Clientes'] = clients  # Agregamos los clientes al DataFrame
+        clients = response.json()  # Parseamos la respuesta JSON        
+
+        # Retornamos los clientes como un DataFrame
+        return pd.DataFrame({'Clientes': clients})
     except requests.RequestException as e:
-        print(f"Error al obtener los datos: {e}")
-        df['Clientes'] = ['Desconocido'] * len(df)  # En caso de error, rellenamos con valores por defecto
-    return df.copy()  # Devuelve una copia para evitar modificaciones accidentales
+        print(f"Error al obtener los datos de clientes: {e}")
+        # En caso de error, devolvemos un DataFrame vacío
+        return pd.DataFrame({'Clientes': []})
+
 
 def get_data_columns(client_name):
     """
-    Obtiene los datos de una variable específica para un cliente desde un endpoint remoto.
+    Obtiene los datos de un cliente específico desde un endpoint remoto.
     """
     try:
         # Definimos la URL del endpoint y el payload
         url = "http://localhost:8080/clients/data"
         payload = {
-            "client_name": client_name            
+            "client_name": client_name
         }
         headers = {"Content-Type": "application/json"}
 
@@ -53,12 +48,11 @@ def get_data_columns(client_name):
         data = response.json()
 
         # Verificamos si los datos son válidos
-        if data and isinstance(data, list):
-            print(f"Datos obtenidos para {client_name} ")
-            return data  # Retorna los datos completos como lista de diccionarios
+        if data and isinstance(data, list):            
+            return pd.DataFrame(data)  # Convertimos los datos en un DataFrame
         else:
-            print(f"No se encontraron datos para {client_name} ")
-            return []  # Retorna una lista vacía si no hay datos
+            print(f"No se encontraron datos para {client_name}")
+            return pd.DataFrame()  # Retornamos un DataFrame vacío si no hay datos
     except requests.RequestException as e:
-        print(f"Error al obtener los datos: {e}")
-        return []  # En caso de error, retorna una lista vacía
+        print(f"Error al obtener los datos para {client_name}: {e}")
+        return pd.DataFrame()  # En caso de error, retornamos un DataFrame vacío

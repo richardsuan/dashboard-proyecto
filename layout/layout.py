@@ -1,14 +1,13 @@
 from layout.components import filter_section, anomaly_section, graph_tabs
 from services import data_service
-from dash import dcc, html, Input, Output, callback, callback_context
+from dash import dcc, html, Input, Output, callback
 import pandas as pd
-import plotly.express as px
+from dash import callback
 
 app_layout = html.Div([
-    # Almacenamiento del cliente seleccionado
     dcc.Store(id='selected-client', storage_type='memory'),
+    dcc.Store(id='client-data', storage_type='memory'),
 
-    # Encabezado 
     html.Div([
         html.Div([
             html.H1('Contugas - Sistema de Detección de Anomalías', className='header-title'),
@@ -16,41 +15,28 @@ app_layout = html.Div([
         ], className='header-content')
     ], className='header'),
 
-    # Cuerpo Principal
     html.Div(className='main-body', children=[
-        # Columna izquierda - Filtros y Anomalías
         html.Div(className='left-column', children=[
             filter_section.render(),
             anomaly_section.render()
         ]),
 
-        # Columna central
         html.Div(className='right-column', children=[
-            # Fila 1 - Gráfico Principal
             html.Div(className='main-graph-section', children=[
                 html.H3(id='main-title', children='Comportamiento y Predicción - Cliente'),
                 graph_tabs.render(),
-                dcc.Graph(id='scatter-graph')  # Gráfica que será actualizada dinámicamente
+                dcc.Graph(id='scatter-graph')
             ]),
 
-            # Fila 2 - Relación entre variables y resumen
             html.Div(className='bottom-section', children=[
                 html.Div(className='variables-section', children=[
                     html.H3('Relación entre Variables'),
                     html.Label('Eje X:'),
-                    dcc.Dropdown(
-                        id='x-axis',
-                        options=[],  # Opciones dinámicas
-                        value=None  # Valor por defecto
-                    ),
+                    dcc.Dropdown(id='x-axis', options=[], value=None),
                     html.Label('Eje Y:'),
-                    dcc.Dropdown(
-                        id='y-axis',
-                        options=[],  # Opciones dinámicas
-                        value=None  # Valor por defecto
-                    ),
+                    dcc.Dropdown(id='y-axis', options=[], value=None),
+                    dcc.Graph(id='variables-graph')  # Nueva gráfica para "Relación entre Variables"
                 ]),
-
                 html.Div(className='summary-section', children=[
                     html.H3('Resumen Estadístico'),
                     html.Div(id='summary-output'),
@@ -63,55 +49,134 @@ app_layout = html.Div([
 ])
 
 @callback(
-    Output('main-title', 'children'),
-    Input('selected-client', 'data')
+    [Output('selected-client', 'data'),
+     Output('client-data', 'data'),
+     Output('main-title', 'children')],
+    Input('client-dropdown', 'value')
 )
-def update_title(selected_client):
-    if selected_client:
-        return f'Comportamiento y Predicción - Cliente {selected_client}'
-    return 'Comportamiento y Predicción'
+def update_client_and_data(client_id):
+    if not client_id:
+        return None, None, 'Comportamiento y Predicción'
+
+    # Obtener los datos del cliente como un DataFrame
+    data = data_service.get_data_columns(client_id)
+
+    # Convertir el DataFrame a una lista de diccionarios (JSON serializable)
+    data_as_dict = data.to_dict('records') if not data.empty else None
+
+    return client_id, data_as_dict, f'Comportamiento y Predicción - Cliente {client_id}'
+
 
 @callback(
     [Output('x-axis', 'options'),
      Output('y-axis', 'options'),
      Output('scatter-graph', 'figure')],
-    [Input('selected-client', 'data'),
+    [Input('client-data', 'data'),
      Input('graph-tabs', 'value'),
-     Input('x-axis', 'value'),
-     Input('y-axis', 'value')]
+     Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
 )
-def update_graph_and_dropdowns(selected_client, selected_tab, x_axis_value, y_axis_value):
-    ctx = callback_context
-    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
-
-    if not selected_client or not selected_tab:
+def update_graph(client_data, selected_tab, start_date, end_date):
+    if not client_data or not selected_tab:
         return [], [], {
             'data': [],
             'layout': {
-                'title': 'Seleccione un cliente y una pestaña para visualizar la gráfica'
+                'title': 'Seleccione un cliente, una pestaña y un rango de fechas para visualizar la gráfica'
             }
         }
 
-    data = data_service.get_data_columns(selected_client)
-    df = pd.DataFrame(data)
+    # Convertir la lista de diccionarios de nuevo a un DataFrame
+    df = pd.DataFrame(client_data)
+
+    # Validar que las fechas seleccionadas existan y filtrar el DataFrame
+    if start_date and end_date:
+        df['Fecha'] = pd.to_datetime(df['Fecha'])  # Asegurarse de que 'Fecha' esté en formato datetime
+        df = df[(df['Fecha'] >= start_date) & (df['Fecha'] <= end_date)]
+    else:
+        # Si no hay rango de fechas seleccionado, usar todos los datos
+        df['Fecha'] = pd.to_datetime(df['Fecha'])
+
+    # Generar las opciones para los dropdowns
     dropdown_options = [{'label': col, 'value': col} for col in df.columns]
 
-    figure = {}
+    # Validar los valores seleccionados para los ejes
+    x_axis_value = 'Fecha'
+    y_axis_value = selected_tab
 
-    if triggered_id == 'selected-client' or triggered_id == 'graph-tabs':
-        # Inicializar la gráfica con los datos del cliente y la pestaña
-        if not df.empty:
-            figure = px.line(df, x='Fecha', y=selected_tab.capitalize(),
-                             title=f'{selected_tab.capitalize()} para {selected_client}')
-        else:
-            figure = {"layout": {"title": f"No hay datos disponibles para {selected_client}"}}
+    # Crear la figura de la gráfica
+    fig = {
+        'data': [
+            {
+                'x': df[x_axis_value],
+                'y': df[y_axis_value],
+                'type': 'scatter',
+                'mode': 'lines',
+                'name': selected_tab
+            }
+        ],
+        'layout': {
+            'title': f'{y_axis_value} vs {x_axis_value}',
+            'xaxis': {'title': x_axis_value},
+            'yaxis': {'title': y_axis_value}
+        }
+    }
 
-    elif triggered_id == 'x-axis' or triggered_id == 'y-axis':
-        # Actualizar la gráfica basado en los ejes seleccionados
-        if df is not None and not df.empty and x_axis_value in df.columns and y_axis_value in df.columns:
-            figure = px.scatter(df, x=x_axis_value, y=y_axis_value, trendline="ols",
-                                 title=f'Gráfica de {y_axis_value} vs {x_axis_value} para {selected_client}')
-        else:
-            figure = {"layout": {"title": "Seleccione variables válidas para los ejes X e Y"}}
+    return dropdown_options, dropdown_options, fig
 
-    return dropdown_options, dropdown_options, figure
+
+@callback(
+    Output('variables-graph', 'figure'),
+    [Input('client-data', 'data'),
+     Input('x-axis', 'value'),
+     Input('y-axis', 'value'),
+     Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
+)
+def update_variables_graph(client_data, x_axis_value, y_axis_value, start_date, end_date):
+    if not client_data or not x_axis_value or not y_axis_value:
+        return {
+            'data': [],
+            'layout': {
+                'title': 'Seleccione variables para los ejes X e Y y un rango de fechas'
+            }
+        }
+
+    # Convertir la lista de diccionarios de nuevo a un DataFrame
+    df = pd.DataFrame(client_data)
+
+    # Validar que las fechas seleccionadas existan y filtrar el DataFrame
+    if start_date and end_date:
+        df['Fecha'] = pd.to_datetime(df['Fecha'])  # Asegurarse de que 'Fecha' esté en formato datetime
+        df = df[(df['Fecha'] >= start_date) & (df['Fecha'] <= end_date)]
+    else:
+        # Si no hay rango de fechas seleccionado, usar todos los datos
+        df['Fecha'] = pd.to_datetime(df['Fecha'])
+
+    # Validar que las columnas seleccionadas existan en el DataFrame
+    if x_axis_value not in df.columns or y_axis_value not in df.columns:
+        return {
+            'data': [],
+            'layout': {
+                'title': 'Seleccione variables válidas para los ejes X e Y'
+            }
+        }
+
+    # Crear la figura de la gráfica
+    fig = {
+        'data': [
+            {
+                'x': df[x_axis_value],
+                'y': df[y_axis_value],
+                'type': 'scatter',
+                'mode': 'markers',  # Mostrar puntos en lugar de líneas                
+                'name': f'{y_axis_value} vs {x_axis_value}'
+            }
+        ],
+        'layout': {
+            'title': f'Relación entre {y_axis_value} y {x_axis_value}',
+            'xaxis': {'title': x_axis_value},
+            'yaxis': {'title': y_axis_value}                        
+        }
+    }
+
+    return fig
