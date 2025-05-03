@@ -131,6 +131,7 @@ def update_graph(client_data, selected_tab, start_date, end_date):
      Input('y-axis', 'value'),
      Input('date-picker-range', 'start_date'),
      Input('date-picker-range', 'end_date')]
+     
 )
 def update_variables_graph(client_data, x_axis_value, y_axis_value, start_date, end_date):
     if not client_data or not x_axis_value or not y_axis_value:

@@ -25,7 +25,8 @@ def render():
                 max_date_allowed=None,
                 start_date=None,
                 end_date=None,
-                display_format='YYYY-MM-DD'
+                display_format='YYYY-MM-DD',
+                className='custom-date-picker'
             ),
         ])
     ])
