@@ -92,3 +92,18 @@
 .DateRangePicker_picker {
     top: 100px !important; /* Ajusta este valor para mover el calendario más abajo */
 }
+
+
+/* Contenedor para los selectores de ejes */
+.axis-selectors {
+    display: flex; /* Usar diseño flexbox para colocar los elementos lado a lado */
+    gap: 20px; /* Espaciado entre los selectores */
+    align-items: center; /* Alinear verticalmente los elementos */
+    margin-bottom: 20px; /* Espaciado inferior para separar de la gráfica */
+}
+
+/* Estilo individual para cada selector */
+.axis-selector {
+    flex: 1; /* Hacer que los selectores ocupen el mismo espacio */
+    min-width: 200px; /* Ancho mínimo para los selectores */
+}

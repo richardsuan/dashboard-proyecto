@@ -31,15 +31,27 @@ app_layout = html.Div([
             html.Div(className='bottom-section', children=[
                 html.Div(className='variables-section', children=[
                     html.H3('Relación entre Variables'),
-                    html.Label('Eje X:'),
-                    dcc.Dropdown(id='x-axis', options=[], value=None),
-                    html.Label('Eje Y:'),
-                    dcc.Dropdown(id='y-axis', options=[], value=None),
-                    dcc.Graph(id='variables-graph')  # Nueva gráfica para "Relación entre Variables"
+                    html.Div([
+                        html.Div([
+                            html.Label('Eje X:'),
+                            dcc.Dropdown(id='x-axis', options=[], value=None)
+                        ], className='axis-selector'),
+                        html.Div([
+                            html.Label('Eje Y:'),
+                            dcc.Dropdown(id='y-axis', options=[], value=None)
+                        ], className='axis-selector')
+                    ], className='axis-selectors'),  # Contenedor para los selectores
+                    dcc.Graph(id='variables-graph')  # Gráfica para "Relación entre Variables"
                 ]),
                 html.Div(className='summary-section', children=[
                     html.H3('Resumen Estadístico'),
                     html.Div(id='summary-output'),
+                    html.Div([
+                        html.P('Promedio: ', id='mean-output'),
+                        html.P('Máximo: ', id='max-output'),
+                        html.P('Mínimo: ', id='min-output'),
+                        html.P('Desviación Estándar: ', id='std-output')
+                    ], className='statistics-values'),
                     html.H3('Detalle de Anomalía Predicha'),
                     html.Div(id='anomaly-detail-output'),
                 ])
@@ -181,3 +193,44 @@ def update_variables_graph(client_data, x_axis_value, y_axis_value, start_date, 
     }
 
     return fig
+
+
+@callback(
+    [Output('mean-output', 'children'),
+     Output('max-output', 'children'),
+     Output('min-output', 'children'),
+     Output('std-output', 'children')],
+    [Input('client-data', 'data'),
+     Input('graph-tabs', 'value'),
+     Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
+)
+def update_statistics(client_data, selected_tab, start_date, end_date):
+    if not client_data or not selected_tab:
+        return 'Promedio: N/A', 'Máximo: N/A', 'Mínimo: N/A', 'Desviación Estándar: N/A'
+
+    # Convertir la lista de diccionarios de nuevo a un DataFrame
+    df = pd.DataFrame(client_data)
+
+    # Validar que las fechas seleccionadas existan y filtrar el DataFrame
+    if start_date and end_date:
+        df['Fecha'] = pd.to_datetime(df['Fecha'])  # Asegurarse de que 'Fecha' esté en formato datetime
+        df = df[(df['Fecha'] >= start_date) & (df['Fecha'] <= end_date)]
+
+    # Validar que la columna seleccionada en la pestaña exista en el DataFrame
+    if selected_tab not in df.columns:
+        return 'Promedio: N/A', 'Máximo: N/A', 'Mínimo: N/A', 'Desviación Estándar: N/A'
+
+    # Calcular estadísticas
+    mean_value = df[selected_tab].mean()
+    max_value = df[selected_tab].max()
+    min_value = df[selected_tab].min()
+    std_value = df[selected_tab].std()
+
+    # Retornar los valores formateados
+    return (
+        f'Promedio: {mean_value:.2f}',
+        f'Máximo: {max_value:.2f}',
+        f'Mínimo: {min_value:.2f}',
+        f'Desviación Estándar: {std_value:.2f}'
+    )
