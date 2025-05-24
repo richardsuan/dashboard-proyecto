@@ -18,7 +18,7 @@ def get_clients():
         # Realizamos la solicitud GET al endpoint
         response = requests.get("http://localhost:8080/clients")
         response.raise_for_status()  # Lanza una excepción si la respuesta tiene un error HTTP
-        clients = response.json()  # Parseamos la respuesta JSON        
+        clients = response.json()  # Parseamos la respuesta JSON
 
         # Retornamos los clientes como un DataFrame
         return pd.DataFrame({'Clientes': clients})
@@ -48,8 +48,11 @@ def get_data_columns(client_name):
         data = response.json()
 
         # Verificamos si los datos son válidos
-        if data and isinstance(data, list):            
-            return pd.DataFrame(data)  # Convertimos los datos en un DataFrame
+
+        if data and isinstance(data, list):
+            midataframe = pd.DataFrame(data)
+            print(f"Valores únicos en 'Anomalia io': {midataframe['Anomalia'].unique()}")
+            return  midataframe
         else:
             print(f"No se encontraron datos para {client_name}")
             return pd.DataFrame()  # Retornamos un DataFrame vacío si no hay datos

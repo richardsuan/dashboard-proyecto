@@ -52,8 +52,7 @@ app_layout = html.Div([
                         html.P('Mínimo: ', id='min-output'),
                         html.P('Desviación Estándar: ', id='std-output')
                     ], className='statistics-values'),
-                    html.H3('Detalle de Anomalía Predicha'),
-                    html.Div(id='anomaly-detail-output'),
+
                 ])
             ])
         ])
@@ -114,20 +113,58 @@ def update_graph(client_data, selected_tab, start_date, end_date):
     # Validar los valores seleccionados para los ejes
     x_axis_value = 'Fecha'
     y_axis_value = selected_tab
+    print(f"Valores únicos en 'Anomalia': {df['Anomalia'].unique()}")
+    # Dividir los datos en normales y anómalos
+    normal_data = df[df['Anomalia'] == 0]
+    # Imprimir la cantidad de datos normales y anómalos
+    print(f"Datos normales: {len(normal_data)}")
+    anomalous_data = df[df['Anomalia'] == 1]
+    print(f"Datos anómalos: {len(anomalous_data)}")
+    q1 = df[y_axis_value].quantile(0.02)  # Primer cuartil
+    q3 = df[y_axis_value].quantile(0.98)  # Tercer cuartil
 
     # Crear la figura de la gráfica
     fig = {
         'data': [
+            # Puntos normales
+            {
+                'x': normal_data[x_axis_value],
+                'y': normal_data[y_axis_value],
+                'type': 'scatter',
+                'mode': 'markers',
+                'name': 'Puntos normales',
+                'marker': {'color': 'blue'}
+            },
+            # Puntos anómalos
+            {
+                'x': anomalous_data[x_axis_value],
+                'y': anomalous_data[y_axis_value],
+                'type': 'scatter',
+                'mode': 'markers',
+                'name': 'Puntos anómalos',
+                'marker': {'color': 'red'}
+            },
+            # Línea para Q1 (primer cuartil)
             {
                 'x': df[x_axis_value],
-                'y': df[y_axis_value],
+                'y': [q1] * len(df),
                 'type': 'scatter',
                 'mode': 'lines',
-                'name': selected_tab
+                'name': 'Límite inferior',
+                'line': {'color': 'red', 'dash': 'dash'}
+            },
+            # Línea para Q3 (tercer cuartil)
+            {
+                'x': df[x_axis_value],
+                'y': [q3] * len(df),
+                'type': 'scatter',
+                'mode': 'lines',
+                'name': 'Límite superior',
+                'line': {'color': 'red', 'dash': 'dash'}
             }
         ],
         'layout': {
-            'title': f'{y_axis_value} vs {x_axis_value}',
+            'title': f'{y_axis_value} vs {x_axis_value} (Límites Intercuartiles)',
             'xaxis': {'title': x_axis_value},
             'yaxis': {'title': y_axis_value}
         }
@@ -143,7 +180,7 @@ def update_graph(client_data, selected_tab, start_date, end_date):
      Input('y-axis', 'value'),
      Input('date-picker-range', 'start_date'),
      Input('date-picker-range', 'end_date')]
-     
+
 )
 def update_variables_graph(client_data, x_axis_value, y_axis_value, start_date, end_date):
     if not client_data or not x_axis_value or not y_axis_value:
@@ -181,14 +218,14 @@ def update_variables_graph(client_data, x_axis_value, y_axis_value, start_date, 
                 'x': df[x_axis_value],
                 'y': df[y_axis_value],
                 'type': 'scatter',
-                'mode': 'markers',  # Mostrar puntos en lugar de líneas                
+                'mode': 'markers',  # Mostrar puntos en lugar de líneas
                 'name': f'{y_axis_value} vs {x_axis_value}'
             }
         ],
         'layout': {
             'title': f'Relación entre {y_axis_value} y {x_axis_value}',
             'xaxis': {'title': x_axis_value},
-            'yaxis': {'title': y_axis_value}                        
+            'yaxis': {'title': y_axis_value}
         }
     }
 

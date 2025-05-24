@@ -1,14 +1,14 @@
 from dash import dcc, html
 from services.data_service import get_clients
 from dash import dcc, html, Input, Output, callback
-import pandas as pd 
+import pandas as pd
 
 def render():
     # Obtenemos los datos de clientes desde el DataFrame
     df = get_clients()
     clientes = df['Clientes'].unique()
 
-    cliente_options = [{'label': cliente, 'value': cliente} for cliente in clientes]    
+    cliente_options = [{'label': cliente, 'value': cliente} for cliente in clientes]
     return html.Div([
         html.H3('Filtros'),
         html.Div([
@@ -48,12 +48,17 @@ def update_date_range(client_data):
         if 'Fecha' not in df.columns:
             return None, None, None, None
 
+        # Convertir la columna 'Fecha' a formato datetime
         df['Fecha'] = pd.to_datetime(df['Fecha'])
 
-        min_date = df['Fecha'].min().date()
-        max_date = df['Fecha'].max().date()
+        # Calcular las fechas mínimas y máximas
+        max_date = df['Fecha'].max().date()  # Fecha máxima
+        min_date_allowed = df['Fecha'].min().date()  # Fecha mínima permitida
+        max_date_allowed = max_date + pd.Timedelta(days=2)  # Fecha máxima permitida (máxima + 2 días)
+        start_date = max_date - pd.Timedelta(weeks=2)  # Fecha de inicio (máxima - 2 semanas)
+        end_date = max_date + pd.Timedelta(days=2)  # Fecha de fin (máxima + 2 días)
 
-        return min_date, max_date, min_date, max_date
+        return min_date_allowed, max_date_allowed, start_date, end_date
     except Exception as e:
         print(f"Error al procesar fechas: {e}")
         return None, None, None, None
