@@ -13,15 +13,21 @@ df = pd.DataFrame(data)
 
 
 def get_clients():
-    """Obtiene los datos de clientes desde un endpoint remoto."""
+    """Obtiene los datos de clientes desde un endpoint remoto y los ordena numéricamente."""
     try:
         # Realizamos la solicitud GET al endpoint
         response = requests.get("http://localhost:8080/clients")
         response.raise_for_status()  # Lanza una excepción si la respuesta tiene un error HTTP
         clients = response.json()  # Parseamos la respuesta JSON
 
+        # Ordenar los clientes por el número al final del nombre
+        clients_sorted = sorted(
+            clients,
+            key=lambda x: int(''.join(filter(str.isdigit, x)))
+        )
+
         # Retornamos los clientes como un DataFrame
-        return pd.DataFrame({'Clientes': clients})
+        return pd.DataFrame({'Clientes': clients_sorted})
     except requests.RequestException as e:
         print(f"Error al obtener los datos de clientes: {e}")
         # En caso de error, devolvemos un DataFrame vacío

@@ -128,22 +128,22 @@ def update_graph(client_data, selected_tab, start_date, end_date):
         'data': [
             # Puntos normales
             {
-                'x': normal_data[x_axis_value],
-                'y': normal_data[y_axis_value],
+                'x': df[x_axis_value],
+                'y': df[y_axis_value],
                 'type': 'scatter',
                 'mode': 'markers',
-                'name': 'Puntos normales',
+                'name': 'Data',
                 'marker': {'color': 'blue'}
             },
-            # Puntos anómalos
-            {
-                'x': anomalous_data[x_axis_value],
-                'y': anomalous_data[y_axis_value],
-                'type': 'scatter',
-                'mode': 'markers',
-                'name': 'Puntos anómalos',
-                'marker': {'color': 'red'}
-            },
+            ## Puntos anómalos
+            #{
+            #    'x': anomalous_data[x_axis_value],
+            #    'y': anomalous_data[y_axis_value],
+            #    'type': 'scatter',
+            #    'mode': 'markers',
+            #    'name': 'Puntos anómalos',
+            #    'marker': {'color': 'red'}
+            #},
             # Línea para Q1 (primer cuartil)
             {
                 'x': df[x_axis_value],
